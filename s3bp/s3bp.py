@@ -6,6 +6,7 @@ import os
 import datetime
 import ntpath  # to extract file name from path, OS-independent
 import traceback  # for printing full stacktraces of errors
+import concurrent.futures  # for asynchronous file uploads
 
 try:  # for automatic caching of return values of functions
     from functools import lru_cache
@@ -20,6 +21,8 @@ import yaml  # to read the s3bp config
 
 
 CFG_FILE_NAME = 's3bp_cfg.yml'
+DEFAULT_MAX_WORKERS = 5
+EXECUTOR = None
 
 
 # === Reading configuration ===
@@ -35,7 +38,10 @@ def _s3bp_cfg_file_path():
 def _get_s3bp_cfg():
     try:
         with open(_s3bp_cfg_file_path(), 'r') as cfg_file:
-            return yaml.safe_load(cfg_file)
+            cfg = yaml.safe_load(cfg_file)
+            if not isinstance(cfg, dict):
+                cfg = {'base_folder_to_bucket_map': {}},
+            return cfg
     except FileNotFoundError:
         with open(_s3bp_cfg_file_path(), 'w') as outfile:
             outfile.write(yaml.dump(
@@ -43,6 +49,14 @@ def _get_s3bp_cfg():
                 default_flow_style=False
             ))
         return _get_s3bp_cfg()
+
+
+@lru_cache(maxsize=2)
+def _max_workers():
+    try:
+        return _get_s3bp_cfg()['max_workers']
+    except KeyError:
+        return DEFAULT_MAX_WORKERS
 
 
 @lru_cache(maxsize=2)
@@ -73,10 +87,26 @@ def _set_s3bp_cfg(cfg):
     _get_bucket_and_key.cache_clear()
 
 
+def set_max_workers(max_workers):
+    """Sets the maximum number of workers in the thread pool used to
+    asynchronously upload files. NOTE: Resets the current thread pool!"""
+    cfg = _get_s3bp_cfg()
+    cfg['max_workers'] = max_workers
+    _set_s3bp_cfg(cfg)
+    _get_executor(reset=True)
+
+
 def set_default_bucket(bucket_name):
     """Sets the given string as the default bucket name."""
     cfg = _get_s3bp_cfg()
     cfg['default_bucket'] = bucket_name
+    _set_s3bp_cfg(cfg)
+
+
+def unset_default_bucket():
+    """Unsets the currently set default bucket, if set."""
+    cfg = _get_s3bp_cfg()
+    cfg.pop('default_bucket', None)
     _set_s3bp_cfg(cfg)
 
 
@@ -112,6 +142,19 @@ def remove_base_folder_mapping(base_folder):
 
 
 # === Getting parameters ===
+
+
+def _get_executor(reset=False):
+    if reset:
+        _get_executor.executor = concurrent.futures.ThreadPoolExecutor(
+            _max_workers())
+    try:
+        return _get_executor.executor
+    except AttributeError:
+        _get_executor.executor = concurrent.futures.ThreadPoolExecutor(
+            _max_workers())
+        return _get_executor.executor
+
 
 @lru_cache(maxsize=32)
 def _get_bucket_by_name(bucket_name):
@@ -170,7 +213,7 @@ def _get_bucket_and_key(filepath, bucket_name, namekey):
 
 # === Saving/loading files ===
 
-def upload_file(filepath, bucket_name=None, namekey=None):
+def upload_file(filepath, bucket_name=None, namekey=None, wait=False):
     """Uploads the given file to S3 storage.
 
     Arguments
@@ -189,9 +232,16 @@ def upload_file(filepath, bucket_name=None, namekey=None):
         the file name will be used as key. Otherwise, the path rooted at the
         detected base folder will be used, resulting in a folder-like structure
         in the S3 bucket.
+    wait (optional) : bool
+        Defaults to False. If set to True, the function will wait on the upload
+        operation. Otherwise, the upload will be performed asynchronously in a
+        separate thread.
     """
     bucket, key = _get_bucket_and_key(filepath, bucket_name, namekey)
-    bucket.upload_file(filepath, key)
+    if wait:
+        bucket.upload_file(filepath, key)
+    else:
+        _get_executor().submit(bucket.upload_file, filepath, key)
 
 
 def _file_time_modified(filepath):
@@ -249,7 +299,7 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
 
 # === Saving/loading dataframes ===
 
-def save_dataframe(df, filepath, bucket_name=None, namekey=None):
+def save_dataframe(df, filepath, bucket_name=None, namekey=None, wait=False):
     """Writes the given dataframe as a CSV file to disk and S3 storage.
 
     Arguments
@@ -270,9 +320,13 @@ def save_dataframe(df, filepath, bucket_name=None, namekey=None):
         the file name will be used as key. Otherwise, the path rooted at the
         detected base folder will be used, resulting in a folder-like structure
         in the S3 bucket.
+    wait (optional) : bool
+        Defaults to False. If set to True, the function will wait on the upload
+        operation. Otherwise, the upload will be performed asynchronously in a
+        separate thread.
     """
     df.to_csv(filepath)
-    upload_file(filepath, bucket_name, namekey)
+    upload_file(filepath, bucket_name, namekey, wait)
 
 
 def load_dataframe(filepath, bucket_name=None, namekey=None, verbose=False):
