@@ -1,6 +1,6 @@
 # s3bp = S3-backed pandas
 
-Read and write pandas' DataFrames from/to S3, caching them (as CSV files) on your hard drive to avoid unnecessary IO.
+Read and write pandas' DataFrames from/to S3, caching them (as CSVs) on your hard drive to avoid unnecessary IO.
 
 ```
 import s3bp
@@ -17,7 +17,7 @@ s3bp uses the following packages:
 - dateutil (a.k.a. python-dateutil)
 - pyyaml
 
-The boto3 package itself requires that you have an AWS config file at ```~/.aws/config``` with your AWS account credentials to successfully communicate with AWS.
+The boto3 package itself requires that you have an AWS config file at ```~/.aws/config``` with your AWS account credentials to successfully communicate with AWS. [Read here](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) on how you can configure it.
 
 You can install s3bp using:
 ```
@@ -68,4 +68,6 @@ Now, saving or loading a dataframe from a file in that directory - including sub
 
 This effectively results in replicating the directory tree rooted at this directory on the bucket. For example, given the above mapping, saving a Dataframe to the path ```~/Desktop/labels/user_generated/skunks.csv``` will also create a ```labels``` folder on the ```my-labels-s3-bucket```, a ```user_generated``` folder inside it and will upload the file into ```labels/user_generated```.
 
-This can be used both to automatocally backup entire folders (and their sub-folder structure) to S3 and to share these kind of folders over different machines reading and writing Dataframes into them at different times.
+**You can add as many base directories as you want**, and can map several to the same bucket, or each to a different one.
+
+This can be used both to automatocally backup entire folders (and their sub-folder structure) to S3 and to synchronize these kind of folders over different machines reading and writing Dataframes into them at different times.
