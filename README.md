@@ -1,6 +1,6 @@
 # s3bp = S3-backed pandas
 
-Read and write pandas' DataFrames from/to S3, caching them (as CSV files) on your hard drive to avoid unnecessary IO.
+Read and write pandas' DataFrames from/to S3, caching them (as CSVs) on your hard drive to avoid unnecessary IO.
 
 ```
 import s3bp
