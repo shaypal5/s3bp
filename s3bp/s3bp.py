@@ -3,6 +3,7 @@ while also backing to S3 storage. """
 
 
 import os
+import sys
 import datetime
 import ntpath  # to extract file name from path, OS-independent
 import traceback  # for printing full stacktraces of errors
@@ -110,10 +111,16 @@ def unset_default_bucket():
     _set_s3bp_cfg(cfg)
 
 
+def _parse_folder_path(folder_path):
+    if '~' in folder_path:
+        return os.path.expanduser(folder_path)
+    return folder_path
+
+
 def set_default_base_folder(base_folder):
     """Sets the given string as the default base folder name."""
     cfg = _get_s3bp_cfg()
-    cfg['default_base_folder'] = base_folder
+    cfg['default_base_folder'] = _parse_folder_path(base_folder)
     _set_s3bp_cfg(cfg)
 
 
@@ -128,16 +135,18 @@ def add_base_folder_to_bucket_mapping(base_folder, bucket_name):
         The name of the bucket to map the given folder to.
     """
     cfg = _get_s3bp_cfg()
+    parsed_path = _parse_folder_path(base_folder)
     if not isinstance(cfg['base_folder_to_bucket_map'], dict):
         cfg['base_folder_to_bucket_map'] = {}
-    cfg['base_folder_to_bucket_map'][base_folder] = bucket_name
+    cfg['base_folder_to_bucket_map'][parsed_path] = bucket_name
     _set_s3bp_cfg(cfg)
 
 
 def remove_base_folder_mapping(base_folder):
     """Remove the mapping associated with the given folder, if exists."""
     cfg = _get_s3bp_cfg()
-    cfg['base_folder_to_bucket_map'].pop(base_folder, None)
+    parsed_path = _parse_folder_path(base_folder)
+    cfg['base_folder_to_bucket_map'].pop(parsed_path, None)
     _set_s3bp_cfg(cfg)
 
 
@@ -213,6 +222,22 @@ def _get_bucket_and_key(filepath, bucket_name, namekey):
 
 # === Saving/loading files ===
 
+def _parse_file_path(filepath):
+    if '~' in filepath:
+        return os.path.expanduser(filepath)
+    return filepath
+
+
+def _file_upload_thread(bucket, filepath, key):
+    try:
+        bucket.upload_file(filepath, key)
+    except BaseException as exc:  # pylint: disable=W0703
+        print(
+            'File upload failed with following exception:\n{}'.format(exc),
+            flush=True
+        )
+
+
 def upload_file(filepath, bucket_name=None, namekey=None, wait=False):
     """Uploads the given file to S3 storage.
 
@@ -237,11 +262,12 @@ def upload_file(filepath, bucket_name=None, namekey=None, wait=False):
         operation. Otherwise, the upload will be performed asynchronously in a
         separate thread.
     """
+    filepath = _parse_file_path(filepath)
     bucket, key = _get_bucket_and_key(filepath, bucket_name, namekey)
     if wait:
         bucket.upload_file(filepath, key)
     else:
-        _get_executor().submit(bucket.upload_file, filepath, key)
+        _get_executor().submit(_file_upload_thread, bucket, filepath, key)
 
 
 def _file_time_modified(filepath):
@@ -275,6 +301,7 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
         Defaults to False. If set to True, some informative messages will be
         printed.
     """
+    filepath = _parse_file_path(filepath)
     bucket, key = _get_bucket_and_key(filepath, bucket_name, namekey)
     try:
         if os.path.isfile(filepath):
@@ -289,6 +316,9 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
         else:
             if verbose:
                 print('File %s NOT found on disk. Downloading...' % key)
+                # creating non-existing dirs on the path
+                if not os.path.exists(filepath):
+                    os.makedirs(filepath[:filepath.rfind('/')])
             bucket.download_file(key, filepath)
     except ClientError:
         if verbose:
