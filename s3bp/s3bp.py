@@ -3,7 +3,6 @@ while also backing to S3 storage. """
 
 
 import os
-import sys
 import datetime
 import ntpath  # to extract file name from path, OS-independent
 import traceback  # for printing full stacktraces of errors
@@ -41,12 +40,12 @@ def _get_s3bp_cfg():
         with open(_s3bp_cfg_file_path(), 'r') as cfg_file:
             cfg = yaml.safe_load(cfg_file)
             if not isinstance(cfg, dict):
-                cfg = {'base_folder_to_bucket_map': {}},
+                cfg = {'base_dir_to_bucket_map': {}},
             return cfg
     except FileNotFoundError:
         with open(_s3bp_cfg_file_path(), 'w') as outfile:
             outfile.write(yaml.dump(
-                {'base_folder_to_bucket_map': {}},
+                {'base_dir_to_bucket_map': {}},
                 default_flow_style=False
             ))
         return _get_s3bp_cfg()
@@ -66,13 +65,13 @@ def _default_bucket():
 
 
 @lru_cache(maxsize=2)
-def _base_folder_to_bucket_map():
-    return _get_s3bp_cfg()['base_folder_to_bucket_map']
+def _base_dir_to_bucket_map():
+    return _get_s3bp_cfg()['base_dir_to_bucket_map']
 
 
 @lru_cache(maxsize=2)
-def _base_folders():
-    return list(_get_s3bp_cfg()['base_folder_to_bucket_map'].keys())
+def _base_dirs():
+    return list(_get_s3bp_cfg()['base_dir_to_bucket_map'].keys())
 
 
 # === Setting configuration ===
@@ -82,9 +81,9 @@ def _set_s3bp_cfg(cfg):
         outfile.write(yaml.dump(cfg, default_flow_style=False))
     _get_s3bp_cfg.cache_clear()
     _default_bucket.cache_clear()
-    _base_folder_to_bucket_map.cache_clear()
-    _base_folders.cache_clear()
-    _get_base_folder_by_file_path_and_bucket_name.cache_clear()
+    _base_dir_to_bucket_map.cache_clear()
+    _base_dirs.cache_clear()
+    _get_base_dir_by_file_path_and_bucket_name.cache_clear()
     _get_bucket_and_key.cache_clear()
 
 
@@ -111,42 +110,42 @@ def unset_default_bucket():
     _set_s3bp_cfg(cfg)
 
 
-def _parse_folder_path(folder_path):
-    if '~' in folder_path:
-        return os.path.expanduser(folder_path)
-    return folder_path
+def _parse_dir_path(dir_path):
+    if '~' in dir_path:
+        return os.path.expanduser(dir_path)
+    return dir_path
 
 
-def set_default_base_folder(base_folder):
-    """Sets the given string as the default base folder name."""
+def set_default_base_directory(base_directory):
+    """Sets the given string as the default base directory name."""
     cfg = _get_s3bp_cfg()
-    cfg['default_base_folder'] = _parse_folder_path(base_folder)
+    cfg['default_base_dir'] = _parse_dir_path(base_directory)
     _set_s3bp_cfg(cfg)
 
 
-def add_base_folder_to_bucket_mapping(base_folder, bucket_name):
-    """Maps the given folder as a base folder of the given bucket.
+def map_base_directory_to_bucket(base_directory, bucket_name):
+    """Maps the given directory as a base directory of the given bucket.
 
     Arguments
     ---------
-    base_folder : str
-        The full path, from root, to the desired base folder.
+    base_directory : str
+        The full path, from root, to the desired base directory.
     bucket_name : str
-        The name of the bucket to map the given folder to.
+        The name of the bucket to map the given directory to.
     """
     cfg = _get_s3bp_cfg()
-    parsed_path = _parse_folder_path(base_folder)
-    if not isinstance(cfg['base_folder_to_bucket_map'], dict):
-        cfg['base_folder_to_bucket_map'] = {}
-    cfg['base_folder_to_bucket_map'][parsed_path] = bucket_name
+    parsed_path = _parse_dir_path(base_directory)
+    if not isinstance(cfg['base_dir_to_bucket_map'], dict):
+        cfg['base_dir_to_bucket_map'] = {}
+    cfg['base_dir_to_bucket_map'][parsed_path] = bucket_name
     _set_s3bp_cfg(cfg)
 
 
-def remove_base_folder_mapping(base_folder):
-    """Remove the mapping associated with the given folder, if exists."""
+def remove_base_directory_mapping(base_directory):
+    """Remove the mapping associated with the given directory, if exists."""
     cfg = _get_s3bp_cfg()
-    parsed_path = _parse_folder_path(base_folder)
-    cfg['base_folder_to_bucket_map'].pop(parsed_path, None)
+    parsed_path = _parse_dir_path(base_directory)
+    cfg['base_dir_to_bucket_map'].pop(parsed_path, None)
     _set_s3bp_cfg(cfg)
 
 
@@ -172,22 +171,22 @@ def _get_bucket_by_name(bucket_name):
 
 
 @lru_cache(maxsize=32)
-def _get_base_folder_by_file_path_and_bucket_name(filepath, bucket_name):
+def _get_base_dir_by_file_path_and_bucket_name(filepath, bucket_name):
     try:
-        for folder in _base_folders():
-            if (folder in filepath) and (
-                    _base_folder_to_bucket_map()[folder] == bucket_name):
-                return folder
+        for directory in _base_dirs():
+            if (directory in filepath) and (
+                    _base_dir_to_bucket_map()[directory] == bucket_name):
+                return directory
     except (KeyError, AttributeError):
         return None
     return None
 
 
-def _bucket_name_and_base_folder_by_filepath(filepath):
+def _bucket_name_and_base_dir_by_filepath(filepath):
     try:
-        for folder in _base_folders():
-            if folder in filepath:
-                return _base_folder_to_bucket_map()[folder], folder
+        for directory in _base_dirs():
+            if directory in filepath:
+                return _base_dir_to_bucket_map()[directory], directory
     except (KeyError, AttributeError):
         pass
     try:
@@ -200,23 +199,23 @@ def _bucket_name_and_base_folder_by_filepath(filepath):
     return None, None
 
 
-def _get_key(filepath, namekey, base_folder):
-    if namekey or not base_folder:
+def _get_key(filepath, namekey, base_directory):
+    if namekey or not base_directory:
         return ntpath.basename(filepath)
-    index = filepath.find(base_folder[base_folder.rfind('/'):])
+    index = filepath.find(base_directory[base_directory.rfind('/'):])
     return filepath[index + 1:]
 
 
 @lru_cache(maxsize=32)
 def _get_bucket_and_key(filepath, bucket_name, namekey):
     if bucket_name is None:
-        bucket_name, base_folder = _bucket_name_and_base_folder_by_filepath(
+        bucket_name, base_directory = _bucket_name_and_base_dir_by_filepath(
             filepath)
     elif not namekey:
-        base_folder = _get_base_folder_by_file_path_and_bucket_name(
+        base_directory = _get_base_dir_by_file_path_and_bucket_name(
             filepath, bucket_name)
     bucket = _get_bucket_by_name(bucket_name)
-    key = _get_key(filepath, namekey, base_folder)
+    key = _get_key(filepath, namekey, base_directory)
     return bucket, key
 
 
@@ -247,16 +246,16 @@ def upload_file(filepath, bucket_name=None, namekey=None, wait=False):
         The full path, from root, to the desired file.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
-        inferred from any defined base folder that is present on the path
-        (there is no guarentee which base folder will be used if several are
-        present in the given path). If base folder inferrence fails the default
-        bukcet will be used, if defined, else the operation will fail.
+        inferred from any defined base directory that is present on the path
+        (there is no guarentee which base directory will be used if several are
+        present in the given path). If base directory inferrence fails the
+        default bukcet will be used, if defined, else the operation will fail.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when uploading
-        to the bucket. If set, or if no base folder is found in the filepath,
-        the file name will be used as key. Otherwise, the path rooted at the
-        detected base folder will be used, resulting in a folder-like structure
-        in the S3 bucket.
+        to the bucket. If set, or if no base directory is found in the
+        filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
     wait (optional) : bool
         Defaults to False. If set to True, the function will wait on the upload
         operation. Otherwise, the upload will be performed asynchronously in a
@@ -286,17 +285,17 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
     filepath : str
         The full path, from root, to the desired file.
     bucket_name (optional) : str
-        The name of the bucket to download the file from. If not given, it
-        will be inferred from any defined base folder that is present on the
-        path (there is no guarentee which base folder will be used if several
-        are present in the given path). If base folder inferrence fails the
+        The name of the bucket to upload the file to. If not given, it will be
+        inferred from any defined base directory that is present on the path
+        (there is no guarentee which base directory will be used if several are
+        present in the given path). If base directory inferrence fails the
         default bukcet will be used, if defined, else the operation will fail.
     namekey (optional) : bool
-        Indicate whether to use the name of the file as the key when
-        downloading from the bucket. If set, or if no base folder is found in
-        the filepath, the file name will be used as key. Otherwise, the path
-        rooted at the detected base folder will be used, resulting in a
-        folder-like structure in the S3 bucket.
+        Indicate whether to use the name of the file as the key when uploading
+        to the bucket. If set, or if no base directory is found in the
+        filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
     verbose (optional) : bool
         Defaults to False. If set to True, some informative messages will be
         printed.
@@ -340,16 +339,16 @@ def save_dataframe(df, filepath, bucket_name=None, namekey=None, wait=False):
         The full path, from root, to the desired file.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
-        inferred from any defined base folder that is present on the path
-        (there is no guarentee which base folder will be used if several are
-        present in the given path). If base folder inferrence fails the default
-        bukcet will be used, if defined, else the operation will fail.
+        inferred from any defined base directory that is present on the path
+        (there is no guarentee which base directory will be used if several are
+        present in the given path). If base directory inferrence fails the
+        default bukcet will be used, if defined, else the operation will fail.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when uploading
-        to the bucket. If set, or if no base folder is found in the filepath,
-        the file name will be used as key. Otherwise, the path rooted at the
-        detected base folder will be used, resulting in a folder-like structure
-        in the S3 bucket.
+        to the bucket. If set, or if no base directory is found in the
+        filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
     wait (optional) : bool
         Defaults to False. If set to True, the function will wait on the upload
         operation. Otherwise, the upload will be performed asynchronously in a
@@ -370,17 +369,17 @@ def load_dataframe(filepath, bucket_name=None, namekey=None, verbose=False):
     filepath : str
         The full path, from root, to the desired file.
     bucket_name (optional) : str
-        The name of the bucket to download the file from. If not given, it
-        will be inferred from any defined base folder that is present on the
-        path (there is no guarentee which base folder will be used if several
-        are present in the given path). If base folder inferrence fails the
+        The name of the bucket to upload the file to. If not given, it will be
+        inferred from any defined base directory that is present on the path
+        (there is no guarentee which base directory will be used if several are
+        present in the given path). If base directory inferrence fails the
         default bukcet will be used, if defined, else the operation will fail.
     namekey (optional) : bool
-        Indicate whether to use the name of the file as the key when
-        downloading from the bucket. If set, or if no base folder is found in
-        the filepath, the file name will be used as key. Otherwise, the path
-        rooted at the detected base folder will be used, resulting in a
-        folder-like structure in the S3 bucket.
+        Indicate whether to use the name of the file as the key when uploading
+        to the bucket. If set, or if no base directory is found in the
+        filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
     verbose (optional) : bool
         Defaults to False. If set to True, some informative messages will be
         printed.
