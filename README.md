@@ -70,4 +70,4 @@ This effectively results in replicating the directory tree rooted at this direct
 
 **You can add as many base directories as you want**, and can map several to the same bucket, or each to a different one.
 
-This can be used both to automatocally backup entire folders (and their sub-folder structure) to S3 and to share these kind of folders over different machines reading and writing Dataframes into them at different times.
+This can be used both to automatocally backup entire folders (and their sub-folder structure) to S3 and to synchronize these kind of folders over different machines reading and writing Dataframes into them at different times.
