@@ -2,6 +2,6 @@
 setup.cfg
 setup.py
 versioneer.py
-s3po/__init__.py
-s3po/_version.py
-s3po/core.py
+s3bp/__init__.py
+s3bp/_version.py
+s3bp/core.py
