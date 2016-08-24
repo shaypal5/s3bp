@@ -323,8 +323,8 @@ def _pickle_serialiazer(pyobject, filepath):
     pickle.dump(pyobject, open(filepath, 'wb'))
 
 
-def save_object(pyobject, filepath, serializer=_pickle_serialiazer,
-                bucket_name=None, namekey=None, wait=False):
+def save_object(pyobject, filepath, bucket_name=None,
+                serializer=_pickle_serialiazer, namekey=None, wait=False):
     """Saves the given object to S3 storage, caching it as the given file.
 
     Arguments
@@ -333,16 +333,16 @@ def save_object(pyobject, filepath, serializer=_pickle_serialiazer,
         The python object to save.
     filepath : str
         The full path, from root, to the desired cache file.
-    serializer (optional) : callable
-        A callable that takes two positonal arguments, a Python object and a
-        path to a file, and dumps the object to the given file. Defaults to a
-        wrapper of pickle.dump.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
         inferred from any defined base directory that is present on the path
         (there is no guarentee which base directory will be used if several are
         present in the given path). If base directory inferrence fails the
         default bukcet will be used, if defined, else the operation will fail.
+    serializer (optional) : callable
+        A callable that takes two positonal arguments, a Python object and a
+        path to a file, and dumps the object to the given file. Defaults to a
+        wrapper of pickle.dump.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when uploading
         to the bucket. If set, or if no base directory is found in the
@@ -362,7 +362,7 @@ def _picke_deserializer(filepath):
     return pickle.load(open(filepath, 'rb'))
 
 
-def load_object(filepath, deserializer=_picke_deserializer, bucket_name=None,
+def load_object(filepath, bucket_name=None, deserializer=_picke_deserializer,
                 namekey=None, verbose=False):
     """Loads the most recent version of the object cached in the given file.
 
@@ -370,9 +370,6 @@ def load_object(filepath, deserializer=_picke_deserializer, bucket_name=None,
     ---------
     filepath : str
         The full path, from root, to the desired file.
-    deserializer (optional) : callable
-        A callable that takes one positonal argument, a path to a file, and
-        returns the object stored in it. Defaults to a wrapper of pickle.load.
     bucket_name (optional) : str
         The name of the bucket to download the file from. If not given, it
         will be inferred from any defined base directory that is present on
@@ -380,6 +377,9 @@ def load_object(filepath, deserializer=_picke_deserializer, bucket_name=None,
         several are present in the given path). If base directory inferrence
         fails the default bukcet will be used, if defined, else the operation
         will fail.
+    deserializer (optional) : callable
+        A callable that takes one positonal argument, a path to a file, and
+        returns the object stored in it. Defaults to a wrapper of pickle.load.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when
         downloading from the bucket. If set, or if no base directory is found

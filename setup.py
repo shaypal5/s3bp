@@ -22,10 +22,12 @@ setup(
     # download_url='https://github.com/shaypal5/s3po/tarball/0.1.1',
     packages=find_packages(),
     install_requires=[
-        'pandas',
+        'botocore',
         'boto3',
         'dateutil',
-        'pyyaml'
+        'pyyaml',
+        'pandas',
+        'feather-format'
     ],
     keywords=['pandas', 'dataframe', 's3'],
     classifiers=[],
