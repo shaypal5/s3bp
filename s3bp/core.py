@@ -1,4 +1,4 @@
-"""This package enables saving and loading of pandas DataFrame objects to disk
+"""This package enables saving and loading of python objects to disk
 while also backing to S3 storage. """
 
 
