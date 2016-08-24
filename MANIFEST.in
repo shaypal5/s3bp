@@ -1,0 +1,2 @@
+include versioneer.py
+include s3po/_version.py
