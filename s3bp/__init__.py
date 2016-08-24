@@ -1,7 +1,7 @@
 """This package enables saving and loading of pandas DataFrame objects to disk
 while also backing to S3 storage. """
 
-from .s3bp import (
+from .core import (
     set_max_workers,
     set_default_bucket,
     unset_default_bucket,

@@ -7,6 +7,7 @@ import datetime
 import ntpath  # to extract file name from path, OS-independent
 import traceback  # for printing full stacktraces of errors
 import concurrent.futures  # for asynchronous file uploads
+import pickle  # for pickling files
 
 try:  # for automatic caching of return values of functions
     from functools import lru_cache
@@ -18,6 +19,7 @@ import boto3  # to interact with AWS S3
 from botocore.exceptions import ClientError
 import dateutil  # to make local change-time datetime objects time-aware
 import yaml  # to read the s3bp config
+import feather  # to read/write pandas dataframes as feather objects
 
 
 CFG_FILE_NAME = 's3bp_cfg.yml'
@@ -27,14 +29,12 @@ EXECUTOR = None
 
 # === Reading configuration ===
 
-@lru_cache(maxsize=2)
 def _s3bp_cfg_file_path():
     return os.path.abspath(os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
         CFG_FILE_NAME))
 
 
-@lru_cache(maxsize=2)
 def _get_s3bp_cfg():
     try:
         with open(_s3bp_cfg_file_path(), 'r') as cfg_file:
@@ -51,7 +51,6 @@ def _get_s3bp_cfg():
         return _get_s3bp_cfg()
 
 
-@lru_cache(maxsize=2)
 def _max_workers():
     try:
         return _get_s3bp_cfg()['max_workers']
@@ -59,17 +58,14 @@ def _max_workers():
         return DEFAULT_MAX_WORKERS
 
 
-@lru_cache(maxsize=2)
 def _default_bucket():
     return _get_s3bp_cfg()['default_bucket']
 
 
-@lru_cache(maxsize=2)
 def _base_dir_to_bucket_map():
     return _get_s3bp_cfg()['base_dir_to_bucket_map']
 
 
-@lru_cache(maxsize=2)
 def _base_dirs():
     return list(_get_s3bp_cfg()['base_dir_to_bucket_map'].keys())
 
@@ -79,12 +75,6 @@ def _base_dirs():
 def _set_s3bp_cfg(cfg):
     with open(_s3bp_cfg_file_path(), 'w') as outfile:
         outfile.write(yaml.dump(cfg, default_flow_style=False))
-    _get_s3bp_cfg.cache_clear()
-    _default_bucket.cache_clear()
-    _base_dir_to_bucket_map.cache_clear()
-    _base_dirs.cache_clear()
-    _get_base_dir_by_file_path_and_bucket_name.cache_clear()
-    _get_bucket_and_key.cache_clear()
 
 
 def set_max_workers(max_workers):
@@ -219,7 +209,7 @@ def _get_bucket_and_key(filepath, bucket_name, namekey):
     return bucket, key
 
 
-# === Saving/loading files ===
+# === Uploading/Downloading files ===
 
 def _parse_file_path(filepath):
     if '~' in filepath:
@@ -285,15 +275,16 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
     filepath : str
         The full path, from root, to the desired file.
     bucket_name (optional) : str
-        The name of the bucket to upload the file to. If not given, it will be
-        inferred from any defined base directory that is present on the path
-        (there is no guarentee which base directory will be used if several are
-        present in the given path). If base directory inferrence fails the
-        default bukcet will be used, if defined, else the operation will fail.
+        The name of the bucket to download the file from. If not given, it
+        will be inferred from any defined base directory that is present on
+        the path (there is no guarentee which base directory will be used if
+        several are present in the given path). If base directory inferrence
+        fails the default bukcet will be used, if defined, else the operation
+        will fail.
     namekey (optional) : bool
-        Indicate whether to use the name of the file as the key when uploading
-        to the bucket. If set, or if no base directory is found in the
-        filepath, the file name will be used as key. Otherwise, the path
+        Indicate whether to use the name of the file as the key when
+        downloading from the bucket. If set, or if no base directory is found
+        in the filepath, the file name will be used as key. Otherwise, the path
         rooted at the detected base directory will be used, resulting in a
         directory-like structure in the S3 bucket.
     verbose (optional) : bool
@@ -326,17 +317,26 @@ def download_file(filepath, bucket_name=None, namekey=None, verbose=False):
         raise ValueError('No dataframe found with key %s' % key)
 
 
-# === Saving/loading dataframes ===
+# === Saving/loading Python objects ===
 
-def save_dataframe(df, filepath, bucket_name=None, namekey=None, wait=False):
-    """Writes the given dataframe as a CSV file to disk and S3 storage.
+def _pickle_serialiazer(pyobject, filepath):
+    pickle.dump(pyobject, open(filepath, 'wb'))
+
+
+def save_object(pyobject, filepath, serializer=_pickle_serialiazer,
+                bucket_name=None, namekey=None, wait=False):
+    """Saves the given object to S3 storage, caching it as the given file.
 
     Arguments
     ---------
-    df : pandas.Dataframe
-        The pandas dataframe object to save.
+    pyobject : object
+        The python object to save.
     filepath : str
-        The full path, from root, to the desired file.
+        The full path, from root, to the desired cache file.
+    serializer (optional) : callable
+        A callable that takes two positonal arguments, a Python object and a
+        path to a file, and dumps the object to the given file. Defaults to a
+        wrapper of pickle.dump.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
         inferred from any defined base directory that is present on the path
@@ -354,20 +354,83 @@ def save_dataframe(df, filepath, bucket_name=None, namekey=None, wait=False):
         operation. Otherwise, the upload will be performed asynchronously in a
         separate thread.
     """
-    df.to_csv(filepath)
+    serializer(pyobject, filepath)
     upload_file(filepath, bucket_name, namekey, wait)
 
 
-def load_dataframe(filepath, bucket_name=None, namekey=None, verbose=False):
-    """Loads the most updated version of a dataframe from a CSV file, fetching
-    it from S3 storage if necessary.
+def _picke_deserializer(filepath):
+    return pickle.load(open(filepath, 'rb'))
+
+
+def load_object(filepath, deserializer=_picke_deserializer, bucket_name=None,
+                namekey=None, verbose=False):
+    """Loads the most recent version of the object cached in the given file.
+
+    Arguments
+    ---------
+    filepath : str
+        The full path, from root, to the desired file.
+    deserializer (optional) : callable
+        A callable that takes one positonal argument, a path to a file, and
+        returns the object stored in it. Defaults to a wrapper of pickle.load.
+    bucket_name (optional) : str
+        The name of the bucket to download the file from. If not given, it
+        will be inferred from any defined base directory that is present on
+        the path (there is no guarentee which base directory will be used if
+        several are present in the given path). If base directory inferrence
+        fails the default bukcet will be used, if defined, else the operation
+        will fail.
+    namekey (optional) : bool
+        Indicate whether to use the name of the file as the key when
+        downloading from the bucket. If set, or if no base directory is found
+        in the filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
+    verbose (optional) : bool
+        Defaults to False. If set to True, some informative messages will be
+        printed.
+    """
+    download_file(filepath, bucket_name=bucket_name, namekey=namekey,
+                  verbose=verbose)
+    return deserializer(filepath)
+
+
+# === Saving/loading dataframes ===
+
+def _pandas_df_csv_serializer(pyobject, filepath):
+    pyobject.to_csv(filepath)
+
+
+def _pandas_df_excel_serializer(pyobject, filepath):
+    pyobject.to_excel(filepath)
+
+
+def _pandas_df_feather_serializer(pyobject, filepath):
+    feather.write_dataframe(pyobject, filepath)
+
+
+def _get_pandas_df_serializer(dformat):
+    if dformat == 'csv':
+        return _pandas_df_csv_serializer
+    if dformat == 'excel':
+        return _pandas_df_excel_serializer
+    if dformat == 'feather':
+        return _pandas_df_feather_serializer
+
+
+def save_dataframe(df, filepath, dformat='csv', bucket_name=None, namekey=None,
+                   wait=False):
+    """Writes the given dataframe as a CSV file to disk and S3 storage.
 
     Arguments
     ---------
     df : pandas.Dataframe
-        The pandas dataframe object to save.
+        The pandas Dataframe object to save.
     filepath : str
         The full path, from root, to the desired file.
+    dformat (optional) : str
+        The storage format for the Dataframe. One of 'csv','excel' and
+        'feather'. Defaults to 'csv'.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
         inferred from any defined base directory that is present on the path
@@ -380,9 +443,65 @@ def load_dataframe(filepath, bucket_name=None, namekey=None, verbose=False):
         filepath, the file name will be used as key. Otherwise, the path
         rooted at the detected base directory will be used, resulting in a
         directory-like structure in the S3 bucket.
+    wait (optional) : bool
+        Defaults to False. If set to True, the function will wait on the upload
+        operation. Otherwise, the upload will be performed asynchronously in a
+        separate thread.
+    """
+    save_object(df, filepath, serializer=_get_pandas_df_serializer(dformat),
+                bucket_name=bucket_name, namekey=namekey, wait=wait)
+
+
+def _pandas_df_csv_deserializer(filepath):
+    return pd.read_csv(filepath)
+
+
+def _pandas_df_excel_deserializer(filepath):
+    return pd.read_excel(filepath)
+
+
+def _pandas_df_feather_deserializer(filepath):
+    return feather.read_dataframe(filepath)
+
+
+def _get_pandf_defserializer(dformat):
+    if dformat == 'csv':
+        return _pandas_df_csv_deserializer
+    if dformat == 'excel':
+        return _pandas_df_excel_deserializer
+    if dformat == 'feather':
+        return _pandas_df_feather_deserializer
+
+
+def load_dataframe(filepath, dformat='csv', bucket_name=None, namekey=None,
+                   verbose=False):
+    """Loads the most updated version of a dataframe from file, fetching it
+    from S3 storage if necessary.
+
+    Arguments
+    ---------
+    filepath : str
+        The full path, from root, to the desired file.
+    dformat (optional) : str
+        The storage format for the Dataframe. One of 'csv','excel' and
+        'feather'. Defaults to 'csv'.
+    bucket_name (optional) : str
+        The name of the bucket to download the file from. If not given, it
+        will be inferred from any defined base directory that is present on
+        the path (there is no guarentee which base directory will be used if
+        several are present in the given path). If base directory inferrence
+        fails the default bukcet will be used, if defined, else the operation
+        will fail.
+    namekey (optional) : bool
+        Indicate whether to use the name of the file as the key when
+        downloading from the bucket. If set, or if no base directory is found
+        in the filepath, the file name will be used as key. Otherwise, the path
+        rooted at the detected base directory will be used, resulting in a
+        directory-like structure in the S3 bucket.
     verbose (optional) : bool
         Defaults to False. If set to True, some informative messages will be
         printed.
     """
-    download_file(filepath, bucket_name, namekey, verbose)
-    return pd.read_csv(filepath)
+    return load_object(
+        filepath, deserializer=_get_pandf_defserializer(dformat),
+        bucket_name=bucket_name, namekey=namekey, verbose=verbose)
