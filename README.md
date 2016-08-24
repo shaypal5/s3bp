@@ -51,7 +51,7 @@ Notice that if the most updated version is already on your hard drive, it will b
 
 ### Serialization Format
 
-Objects are saved as Python pickle files by default. You can change they way objects are serialized by providing a different serializer when calling ```save_object```. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
+Objects are saved as Python pickle files by default. You can change the way objects are serialized by providing a different serializer when calling ```save_object```. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
 
 For example:
 ```
