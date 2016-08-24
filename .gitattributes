@@ -1,1 +1,2 @@
 s3po/_version.py export-subst
+s3bp/_version.py export-subst

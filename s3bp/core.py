@@ -418,7 +418,7 @@ def _get_pandas_df_serializer(dformat):
         return _pandas_df_feather_serializer
 
 
-def save_dataframe(df, filepath, dformat='csv', bucket_name=None, namekey=None,
+def save_dataframe(df, filepath, bucket_name=None, dformat='csv', namekey=None,
                    wait=False):
     """Writes the given dataframe as a CSV file to disk and S3 storage.
 
@@ -428,15 +428,15 @@ def save_dataframe(df, filepath, dformat='csv', bucket_name=None, namekey=None,
         The pandas Dataframe object to save.
     filepath : str
         The full path, from root, to the desired file.
-    dformat (optional) : str
-        The storage format for the Dataframe. One of 'csv','excel' and
-        'feather'. Defaults to 'csv'.
     bucket_name (optional) : str
         The name of the bucket to upload the file to. If not given, it will be
         inferred from any defined base directory that is present on the path
         (there is no guarentee which base directory will be used if several are
         present in the given path). If base directory inferrence fails the
         default bukcet will be used, if defined, else the operation will fail.
+    dformat (optional) : str
+        The storage format for the Dataframe. One of 'csv','excel' and
+        'feather'. Defaults to 'csv'.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when uploading
         to the bucket. If set, or if no base directory is found in the
@@ -473,7 +473,7 @@ def _get_pandf_defserializer(dformat):
         return _pandas_df_feather_deserializer
 
 
-def load_dataframe(filepath, dformat='csv', bucket_name=None, namekey=None,
+def load_dataframe(filepath, bucket_name=None, dformat='csv', namekey=None,
                    verbose=False):
     """Loads the most updated version of a dataframe from file, fetching it
     from S3 storage if necessary.
@@ -482,9 +482,6 @@ def load_dataframe(filepath, dformat='csv', bucket_name=None, namekey=None,
     ---------
     filepath : str
         The full path, from root, to the desired file.
-    dformat (optional) : str
-        The storage format for the Dataframe. One of 'csv','excel' and
-        'feather'. Defaults to 'csv'.
     bucket_name (optional) : str
         The name of the bucket to download the file from. If not given, it
         will be inferred from any defined base directory that is present on
@@ -492,6 +489,9 @@ def load_dataframe(filepath, dformat='csv', bucket_name=None, namekey=None,
         several are present in the given path). If base directory inferrence
         fails the default bukcet will be used, if defined, else the operation
         will fail.
+    dformat (optional) : str
+        The storage format for the Dataframe. One of 'csv','excel' and
+        'feather'. Defaults to 'csv'.
     namekey (optional) : bool
         Indicate whether to use the name of the file as the key when
         downloading from the bucket. If set, or if no base directory is found

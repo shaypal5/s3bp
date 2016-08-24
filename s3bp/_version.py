@@ -41,8 +41,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = "v"
-    cfg.parentdir_prefix = "s3po-"
-    cfg.versionfile_source = "s3po/_version.py"
+    cfg.parentdir_prefix = "s3bp-"
+    cfg.versionfile_source = "s3bp/_version.py"
     cfg.verbose = False
     return cfg
 
