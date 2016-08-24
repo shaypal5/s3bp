@@ -51,7 +51,7 @@ Notice that if the most updated version is already on your hard drive, it will b
 
 ### Serialization Format
 
-Objects are saved as Python pickle files by default. You can change they way objects are serialized by providing a different serializer when calling ```save_object```. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
+Objects are saved as Python pickle files by default. You can change the way objects are serialized by providing a different serializer when calling ```save_object```. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
 
 For example:
 ```
@@ -93,7 +93,7 @@ This can be used both to automatocally backup entire folders (and their sub-fold
 
 ## Pandas love <3
 
-Special care is given to pandas Dataframe objects, for which several serializers are already defined. To save a dataframe use:
+Special care is given to pandas Dataframe objects, for which a couple of dedicated wrapper methods and several serializers are already defined. To save a dataframe use:
 
 ```
 import s3bp
@@ -108,7 +108,12 @@ Similarly, you can load a dataframe from your bucket with:
 df1 = s3bp.load_dataframe('~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket')
 ```
 
-To use another format assign the corresponding string to the ```format``` keyword; one of 'csv', 'excel' and 'feather' (see [the feather package](https://github.com/wesm/feather)):
+To use another format assign the corresponding string to the ```format``` keyword:
 ```
 s3bp.save_dataframe(df1, '~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket', format='feather')
 ```
+
+Suported pandas Dataframes serialization formats:
+- CSV
+- Excel
+- Feather (see [the feather package](https://github.com/wesm/feather))
