@@ -410,6 +410,7 @@ def _pandas_df_feather_serializer(pyobject, filepath):
 
 
 def _get_pandas_df_serializer(dformat):
+    dformat = dformat.lower()
     if dformat == 'csv':
         return _pandas_df_csv_serializer
     if dformat == 'excel':
@@ -465,6 +466,7 @@ def _pandas_df_feather_deserializer(filepath):
 
 
 def _get_pandf_defserializer(dformat):
+    dformat = dformat.lower()
     if dformat == 'csv':
         return _pandas_df_csv_deserializer
     if dformat == 'excel':
