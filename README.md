@@ -93,7 +93,7 @@ This can be used both to automatocally backup entire folders (and their sub-fold
 
 ## Pandas love <3
 
-Special care is given to pandas Dataframe objects, for which several serializers are already defined. To save a dataframe use:
+Special care is given to pandas Dataframe objects, for which several serializers are already defined and a couple of dedicated wrapper methods. To save a dataframe use:
 
 ```
 import s3bp
