@@ -108,7 +108,12 @@ Similarly, you can load a dataframe from your bucket with:
 df1 = s3bp.load_dataframe('~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket')
 ```
 
-To use another format assign the corresponding string to the ```format``` keyword; one of 'csv', 'excel' and 'feather' (see [the feather package](https://github.com/wesm/feather)):
+To use another format assign the corresponding string to the ```format``` keyword:
 ```
 s3bp.save_dataframe(df1, '~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket', format='feather')
 ```
+
+Suported pandas Dataframes serialization formats:
+- CSV
+- Excel
+- Feather (see [the feather package](https://github.com/wesm/feather))
