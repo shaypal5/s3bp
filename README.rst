@@ -14,12 +14,12 @@ Dependencies and Setup
 ----------------------
 
 s3bp uses the following packages:
-- boto3
-- botocore (instaled with boto3)
-- dateutil (a.k.a. python-dateutil)
-- pyyaml
-- pandas
-- feather-format
+* boto3
+* botocore (instaled with boto3)
+* dateutil (a.k.a. python-dateutil)
+* pyyaml
+* pandas
+* feather-format
 
 The boto3 package itself requires that you have an AWS config file at ``~/.aws/config`` with your AWS account credentials to successfully communicate with AWS. [Read here](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) on how you can configure it.
 
@@ -133,6 +133,6 @@ To use another format assign the corresponding string to the ``format`` keyword:
     s3bp.save_dataframe(df1, '~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket', format='feather')
 
 Suported pandas Dataframes serialization formats:
-- CSV
-- Excel
-- Feather (see [the feather package](https://github.com/wesm/feather))
+* CSV
+* Excel
+* Feather (see [the feather package](https://github.com/wesm/feather))
