@@ -21,12 +21,12 @@ s3bp uses the following packages:
 - pandas
 - feather-format
 
-The boto3 package itself requires that you have an AWS config file at ```~/.aws/config``` with your AWS account credentials to successfully communicate with AWS. [Read here](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) on how you can configure it.
+The boto3 package itself requires that you have an AWS config file at ``~/.aws/config`` with your AWS account credentials to successfully communicate with AWS. [Read here](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) on how you can configure it.
 
 You can install s3bp using:
-```
-pip install s3bp
-```
+.. code-block:: python
+
+    pip install s3bp
 
 Use
 ---
@@ -40,7 +40,7 @@ Save an object to your bucket with:
     name_to_id_dict = {'Dan': 8382, 'Alon': 2993}
     s3bp.save_object(name_to_id_dict, '~/Documents/data_files/name_to_id_map', 'user-data-bucket')
 
-File upload is done asynchronously and in the background by default, only printing exceptions (and not throwing them). If you'd like to wait on your upload, and/or for a failed upload to raise an exception rather than print one, set ```wait=True```:
+File upload is done asynchronously and in the background by default, only printing exceptions (and not throwing them). If you'd like to wait on your upload, and/or for a failed upload to raise an exception rather than print one, set ``wait=True``:
 .. code-block:: python
     s3bp.save_object(name_to_id_dict, '~/Documents/data_files/name_to_id_map', 'user-data-bucket', wait=True)
 
@@ -55,7 +55,7 @@ Notice that if the most updated version is already on your hard drive, it will b
 Serialization Format
 ~~~~~~~~~~~~~~~~~~~~
 
-Objects are saved as Python pickle files by default. You can change the way objects are serialized by providing a different serializer when calling ```save_object```. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
+Objects are saved as Python pickle files by default. You can change the way objects are serialized by providing a different serializer when calling ``save_object``. A serializer is a callable that takes two positonal arguments - a Python object and a path to a file - and dumps the object to the given file. It doesn't have to serialize all Python objects successfully.
 
 For example:
 .. code-block:: python
@@ -66,7 +66,7 @@ For example:
     df1 = pd.Dataframe(data=[[1,3],[6,2]], columns=['A','B'], index=[1,2])
     s3bp.save_object(df1, '~/Documents/data_files/my_frame.csv', 'user-data-bucket', serializer=pandas_df_csv_serializer)
 
-Notice that a corresponding deserializer will have to be provided when loading the object by providing ```load_object``` with a deserializing callable through the ```deserializer``` keyword argument.
+Notice that a corresponding deserializer will have to be provided when loading the object by providing ``load_object`` with a deserializing callable through the ``deserializer`` keyword argument.
 
 Default Bucket
 ~~~~~~~~~~~~~~
@@ -78,17 +78,17 @@ You can now load and save objects without specifying a bucket, in which case the
 .. code-block:: python
     profile_dict = s3bp.load_object('~/Documents/data_files/profile_map')
 
-Once set, your configuration will presist through sessions. If you'd like to unset the default bucket - making operations with no bucket specification fail - use ```s3bp.unset_default_bucket()```.
+Once set, your configuration will presist through sessions. If you'd like to unset the default bucket - making operations with no bucket specification fail - use ``s3bp.unset_default_bucket()``.
 
 Base Directories
 ~~~~~~~~~~~~~~
 You can set a specific directory as a base directory, mapping it to a specific bucket, using:
 .. code-block:: python
-s3bp.map_base_directory_to_bucket('~/Desktop/labels', 'my-labels-s3-bucket')
+    s3bp.map_base_directory_to_bucket('~/Desktop/labels', 'my-labels-s3-bucket')
 
 Now, saving or loading objects from files in that directory - including sub-directories - will automatically use the mapped bucket, unless a different bucket is given explicitly. Furthermore, the files uploaded to the bucket will not be keyed by their file name, but by the sub-path rotted at the given base directory.
 
-This effectively results in replicating the directory tree rooted at this directory on the bucket. For example, given the above mapping, saving an object to the path ```~/Desktop/labels/user_generated/skunks.csv``` will also create a ```labels``` folder on the ```my-labels-s3-bucket```, a ```user_generated``` folder inside it and will upload the file into ```labels/user_generated```.
+This effectively results in replicating the directory tree rooted at this directory on the bucket. For example, given the above mapping, saving an object to the path ``~/Desktop/labels/user_generated/skunks.csv`` will also create a ``labels`` folder on the ``my-labels-s3-bucket``, a ``user_generated`` folder inside it and will upload the file into ``labels/user_generated``.
 
 **You can add as many base directories as you want**, and can map several to the same bucket, or each to a different one.
 
