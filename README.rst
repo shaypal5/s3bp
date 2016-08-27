@@ -24,8 +24,8 @@ s3bp uses the following packages:
 The boto3 package itself requires that you have an AWS config file at ``~/.aws/config`` with your AWS account credentials to successfully communicate with AWS. [Read here](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) on how you can configure it.
 
 You can install s3bp using:
-.. code-block:: python
 
+.. code-block:: python
     pip install s3bp
 
 Use
