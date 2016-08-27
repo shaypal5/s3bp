@@ -26,6 +26,7 @@ The boto3 package itself requires that you have an AWS config file at ``~/.aws/c
 You can install s3bp using:
 
 .. code-block:: python
+
     pip install s3bp
 
 Use
