@@ -14,6 +14,7 @@ Dependencies and Setup
 ----------------------
 
 s3bp uses the following packages:
+
 * boto3
 * botocore (instaled with boto3)
 * dateutil (a.k.a. python-dateutil)
@@ -133,6 +134,7 @@ To use another format assign the corresponding string to the ``format`` keyword:
     s3bp.save_dataframe(df1, '~/Desktop/datasets/weasels.csv', 'my-datasets-s3-bucket', format='feather')
 
 Suported pandas Dataframes serialization formats:
+
 * CSV
 * Excel
 * Feather (see [the feather package](https://github.com/wesm/feather))
