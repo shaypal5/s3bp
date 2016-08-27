@@ -60,7 +60,7 @@ def pandas_df_csv_serializer(pyobject, filepath):
     
 import pandas as pd
 df1 = pd.Dataframe(data=[[1,3],[6,2]], columns=['A','B'], index=[1,2])
-s3bp.save_object(df1, '~/Documents/data_files/my_frame, 'user-data-bucket', serializer=pandas_df_csv_serializer)
+s3bp.save_object(df1, '~/Documents/data_files/my_frame.csv', 'user-data-bucket', serializer=pandas_df_csv_serializer)
 ```
 
 Notice that a corresponding deserializer will have to be provided when loading the object by providing ```load_object``` with a deserializing callable through the ```deserializer``` keyword argument.
