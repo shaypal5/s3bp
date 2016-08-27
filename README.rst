@@ -1,5 +1,5 @@
 s3bp = S3-backed Python (objects)
-=====
+=================================
 
 Read and write Python objects from/to S3, caching them on your hard drive to avoid unnecessary IO.
 Special care given to pandas dataframes.
@@ -92,7 +92,7 @@ You can now load and save objects without specifying a bucket, in which case the
 Once set, your configuration will presist through sessions. If you'd like to unset the default bucket - making operations with no bucket specification fail - use ``s3bp.unset_default_bucket()``.
 
 Base Directories
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 You can set a specific directory as a base directory, mapping it to a specific bucket, using:
 
 .. code-block:: python
