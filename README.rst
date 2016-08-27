@@ -139,4 +139,7 @@ Suported pandas Dataframes serialization formats:
 
 * CSV
 * Excel
-* Feather (see [the feather package](https://github.com/wesm/feather))
+* Feather (see the feather package_)
+
+.. links:
+.. _the feather package: https://github.com/wesm/feather
