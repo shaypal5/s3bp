@@ -80,7 +80,9 @@ Notice that a corresponding deserializer will have to be provided when loading t
 Default Bucket
 ~~~~~~~~~~~~~~
 You can set a default bucket with:
+
 .. code-block:: python
+
     s3bp.set_default_bucket('user-data-bucket')
 
 You can now load and save objects without specifying a bucket, in which case the default bucket will be used:
