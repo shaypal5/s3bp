@@ -4,11 +4,11 @@ s3bp = S3-backed Python (objects)
 Read and write Python objects from/to S3, caching them on your hard drive to avoid unnecessary IO.
 Special care given to pandas dataframes.
 
-```
-import s3bp
-s3bp.save_object(name_to_id_dict, filepath, 'user-data-bucket')
-last_week_dataset = s3bp.load_object(second_filepath, 'my-dataset-s3-bucket')
-```
+.. code-block:: python
+
+    import s3bp
+    s3bp.save_object(name_to_id_dict, filepath, 'user-data-bucket')
+    last_week_dataset = s3bp.load_object(second_filepath, 'my-dataset-s3-bucket')
 
 Dependencies and Setup
 ----------------------
@@ -35,6 +35,7 @@ Saving
 ~~~~~~
 Save an object to your bucket with:
 .. code-block:: python
+
     import s3bp
     name_to_id_dict = {'Dan': 8382, 'Alon': 2993}
     s3bp.save_object(name_to_id_dict, '~/Documents/data_files/name_to_id_map', 'user-data-bucket')
