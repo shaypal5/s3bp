@@ -101,7 +101,7 @@ You can set a specific directory as a base directory, mapping it to a specific b
 
     s3bp.map_base_directory_to_bucket('~/Desktop/labels', 'my-labels-s3-bucket')
 
-Now, saving or loading objects from files in that directory - including sub-directories - will automatically use the mapped bucket, unless a different bucket is given explicitly. Furthermore, the files uploaded to the bucket will not be keyed by their file name, but by the sub-path rotted at the given base directory.
+Now, saving or loading objects from files in that directory - including sub-directories - will automatically use the mapped bucket, unless a different bucket is given explicitly. Furthermore, the files uploaded to the bucket will not be keyed by their file name, but by the sub-path rooted at the given base directory.
 
 This effectively results in replicating the directory tree rooted at this directory on the bucket. For example, given the above mapping, saving an object to the path ``~/Desktop/labels/user_generated/skunks.csv`` will also create a ``labels`` folder on the ``my-labels-s3-bucket``, a ``user_generated`` folder inside it and will upload the file into ``labels/user_generated``.
 
