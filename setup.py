@@ -24,7 +24,7 @@ setup(
     install_requires=[
         'botocore',
         'boto3',
-        'dateutil',
+        'python-dateutil',
         'pyyaml',
         'pandas',
         'feather-format'

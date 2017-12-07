@@ -10,6 +10,8 @@ from .core import (
     remove_base_directory_mapping,
     upload_file,
     download_file,
+    save_object,
+    load_object,
     save_dataframe,
     load_dataframe
 )
