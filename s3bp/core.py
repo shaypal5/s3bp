@@ -204,6 +204,7 @@ def _get_bucket_and_key(filepath, bucket_name, namekey):
     elif not namekey:
         base_directory = _get_base_dir_by_file_path_and_bucket_name(
             filepath, bucket_name)
+        os.makedirs(base_directory, exist_ok=True)
     bucket = _get_bucket_by_name(bucket_name)
     key = _get_key(filepath, namekey, base_directory)
     return bucket, key
