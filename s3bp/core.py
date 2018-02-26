@@ -198,6 +198,7 @@ def _get_key(filepath, namekey, base_directory):
 
 @lru_cache(maxsize=32)
 def _get_bucket_and_key(filepath, bucket_name, namekey):
+    base_directory = None
     if bucket_name is None:
         bucket_name, base_directory = _bucket_name_and_base_dir_by_filepath(
             filepath)
